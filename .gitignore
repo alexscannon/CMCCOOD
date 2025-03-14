@@ -1,0 +1,17 @@
+# Mac operating system
+.DS_Store
+
+# Development Environment Files
+## VSCode
+.vscode/*
+
+# Dependency Directories
+__pycache__/
+.pip-cache/
+
+# Outputs and logs
+wandb
+outputs
+logs
+
+# File types
