@@ -14,4 +14,8 @@ wandb
 outputs
 logs
 
-# File types
+# environment variables
+.env
+
+# Datasets
+data

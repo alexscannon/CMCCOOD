@@ -1,0 +1,7 @@
+wandb:
+  project_name: ${oc.env:PROJECT_NAME}
+  entity: ${oc.env:TEAM_NAME}
+  api_key: ${oc.env:WANDB_API_KEY}
+  tags: ["continual", "foundation_model", "ood"]  # Default tags
+  save_code: true
+  log_model: true

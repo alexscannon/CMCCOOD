@@ -1,0 +1,8 @@
+name: split_cifar
+root: ${oc.env:DATA_ROOT,./data}/cifar100
+num_classes: 100
+image_size: 224
+num_workers: 4
+batch_size: 64
+mean: [0.5071, 0.4867, 0.4408] # CIFAR-100 calculated mean
+std: [0.2675, 0.2565, 0.2761] # CIFAR-100 calculated std

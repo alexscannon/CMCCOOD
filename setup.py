@@ -41,9 +41,9 @@ setup(
     entry_points={
         "console_scripts": [
             # Command-line entry points
-            "omccood-train=src.main:main",                       # Main training script
-            "omccood-prepare-data=scripts.prepare_imagenet:main", # Data preparation script
-            "omccood-evaluate=scripts.evaluate:main",             # Evaluation script
+            "continual_learning-train=src.main:main",                       # Main training script
+            "continual_learning-prepare-data=scripts.prepare_imagenet:main", # Data preparation script
+            "continual_learning-evaluate=scripts.evaluate:main",             # Evaluation script
         ],
     },
     classifiers=[

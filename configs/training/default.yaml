@@ -1,0 +1,12 @@
+epochs_per_task: 5
+batch_size: 128
+
+optimizer:
+  name: adam
+  lr: 0.0001
+  weight_decay: 0.0001
+
+scheduler:
+  name: cosine
+  T_max: ${training.epochs_per_task}
+  eta_min: 0.0

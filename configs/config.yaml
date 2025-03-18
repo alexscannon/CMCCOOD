@@ -1,0 +1,22 @@
+# Hydra base configuration file
+
+defaults:
+  - model: vit                       # Default foundation model
+  - dataset: split_cifar             # Primary dataset
+  - continual_learning/scenario: class_incremental # CIL for Continual learning setting
+  - continual_learning/method: replay/er           # Start with Experience Replay for CL
+  - continual_learning/ood_detection: energy       # Energy-based OOD
+  - training: default
+  - logging: wandb  # Updated to match the directory structure
+  - _self_
+
+# General parameters
+seed: 42 # random seed for reproducability
+device: cuda # setting device to GPU for efficiency
+num_workers: 4 # setting workers for the data loading efficieny
+output_dir: ${hydra:runtime.output_dir}
+
+# Experiment settings
+experiment:
+  name: ${model.name}_${dataset.name}_${continual_learning.method.name}
+  tags: [continual, foundation_model, ood]

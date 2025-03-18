@@ -37,7 +37,7 @@ Key research areas addressed by this framework:
 1. Clone the repository:
    ```bash
    git clone https://github.com/alexscannon/cmccood.git
-   cd omccood
+   cd cmccood
    ```
 
 2. Create a virtual environment (recommended):

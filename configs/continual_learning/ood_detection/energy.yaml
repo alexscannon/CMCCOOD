@@ -1,0 +1,3 @@
+name: energy
+temperature: 1.0
+threshold: null  # OOD detection threshold, Will be set during calibration

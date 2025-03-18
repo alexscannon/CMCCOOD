@@ -1,0 +1,5 @@
+name: class_incremental
+num_tasks: 10
+num_classes_per_task: 10
+shuffle_classes: true
+random_seed: ${seed}

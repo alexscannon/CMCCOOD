@@ -1,0 +1,4 @@
+name: experience_replay
+memory_size: 2000 # Total size of buffer
+selection_strategy: random # Method to select examples from buffer
+batch_size_memory: 32 # Num of examples sampled from buffer at each training iteration
