@@ -15,6 +15,7 @@ seed: 42 # random seed for reproducability
 device: cuda # setting device to GPU for efficiency
 num_workers: 4 # setting workers for the data loading efficieny
 output_dir: ${hydra:runtime.output_dir}
+shuffle_classes: true # shuffle classes for the incremental learning scenario
 
 # Experiment settings
 experiment:

@@ -43,7 +43,12 @@ class Trainer:
         self.cl_method.before_task(task_id)
 
         # Get data loader for current task
-        train_loader = self.scenario.get_task_dataloader(task_id, train=True)
+        train_loader = self.scenario.get_task_dataloader(
+            task_id,
+            train=True,
+            batch_size=256,  # Increased batch size TODO: Make this dynamic
+            num_workers=4    # Adjust based on your CPU cores TODO: Make this dynamic
+        )
 
         # Training loop
         self.model.train()
@@ -54,34 +59,35 @@ class Trainer:
 
             progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{self.epochs_per_task}")
             for inputs, targets in progress_bar:
-
-                inputs = inputs.to(self.device)
-                targets = targets.to(self.device)
+                # Move to device and convert to float32
+                inputs = inputs.to(self.device, dtype=torch.float32, non_blocking=True)
+                targets = targets.to(self.device, non_blocking=True)
 
                 # Zero gradients
-                self.optimizer.zero_grad()
+                self.optimizer.zero_grad(set_to_none=True)  # More efficient than zero_grad()
 
                 # Forward pass
-                outputs = self.model(inputs)
-
-                # Compute loss with CL method
-                loss = self.cl_method.compute_loss(outputs, targets, task_id)
+                with torch.cuda.amp.autocast():  # Mixed precision training
+                    outputs = self.model(inputs)
+                    loss = self.cl_method.compute_loss(outputs, targets, task_id)
 
                 # Backward pass and optimize
                 loss.backward()
                 self.optimizer.step()
 
-                # Update statistics
-                running_loss += loss.item()
-                _, predicted = outputs.max(1)
-                total += targets.size(0)
-                correct += predicted.eq(targets).sum().item()
+                # Update statistics with reduced precision
+                with torch.no_grad():
+                    running_loss += loss.item()
+                    _, predicted = outputs.max(1)
+                    total += targets.size(0)
+                    correct += predicted.eq(targets).sum().item()
 
-                # Update progress bar
-                progress_bar.set_postfix({
-                    'loss': running_loss / (progress_bar.n + 1),
-                    'acc': 100. * correct / total
-                })
+                # Update progress bar less frequently
+                if progress_bar.n % 10 == 0:  # Update every 10 batches
+                    progress_bar.set_postfix({
+                        'loss': running_loss / (progress_bar.n + 1),
+                        'acc': 100. * correct / total
+                    })
 
             # Step scheduler if provided
             if self.scheduler is not None:

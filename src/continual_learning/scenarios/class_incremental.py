@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, Subset
 
 class ClassIncrementalScenario:
     """Class-incremental learning scenario."""
@@ -9,8 +9,8 @@ class ClassIncrementalScenario:
             self,
             dataset,
             num_tasks,
-            num_classes_per_task=None,
-            random_seed=42,
+            num_classes_per_task=None, # Let helper function calc classes per task
+            random_seed=42, #default seed
             shuffle_classes=True
         ):
         self.dataset = dataset
@@ -42,12 +42,16 @@ class ClassIncrementalScenario:
         class_order = np.arange(self.total_classes)
         if self.shuffle_classes:
             np.random.shuffle(class_order)
-
+        print(f"Class order: {class_order}")
         return class_order
 
     def _prepare_task_data(self):
         """Prepare data for each task based on the class order."""
         task_data = {}
+
+        # Get targets from datasets
+        train_targets = torch.tensor(self.train_dataset.targets)
+        test_targets = torch.tensor(self.test_dataset.targets)
 
         for task_id in range(self.num_tasks):
             start_idx = task_id * self.num_classes_per_task
@@ -56,12 +60,18 @@ class ClassIncrementalScenario:
             # Classes for this task
             task_classes = self.class_order[start_idx:end_idx]
 
-            # For testing, we'll create empty lists as placeholders
-            # In a real implementation, we would filter the dataset by class
+            # Get indices for each class in the task
+            train_indices = []
+            test_indices = []
+
+            for class_id in task_classes:
+                train_indices.extend((train_targets == class_id).nonzero().squeeze(1).tolist())
+                test_indices.extend((test_targets == class_id).nonzero().squeeze(1).tolist())
+
             task_data[task_id] = {
                 'classes': task_classes,
-                'train_indices': [],
-                'test_indices': []
+                'train_indices': train_indices,
+                'test_indices': test_indices
             }
 
         return task_data
@@ -71,17 +81,15 @@ class ClassIncrementalScenario:
         if task_id not in self.task_data:
             raise ValueError(f"Task ID {task_id} not found")
 
-        # In a minimal implementation, we'll simply create a small dummy dataset
-        # In a real implementation, we would return a proper subset of the dataset
+        # Select appropriate dataset and indices
+        dataset = self.train_dataset if train else self.test_dataset
+        indices = self.task_data[task_id]['train_indices'] if train else self.task_data[task_id]['test_indices']
 
-        # Create a small dummy dataset for testing
-        x = torch.randn(100, 3, 224, 224)
-        y = torch.randint(0, len(self.task_data[task_id]['classes']), (100,))
-
-        dummy_dataset = TensorDataset(x, y)
+        # Create a subset of the dataset
+        task_dataset = Subset(dataset, indices)
 
         return DataLoader(
-            dummy_dataset,
+            task_dataset,
             batch_size=batch_size,
             shuffle=train,
             num_workers=num_workers,

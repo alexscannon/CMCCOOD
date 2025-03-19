@@ -24,7 +24,7 @@ def main(config: DictConfig) -> None:
     """Main entry point for the simple test run."""
     # Print config
     logger.info(OmegaConf.to_yaml(config))
-
+    logger.info(f"Device: {config.device}")
     # Set random seed
     torch.manual_seed(config.seed)
     if torch.cuda.is_available():
@@ -35,6 +35,9 @@ def main(config: DictConfig) -> None:
     logger.info(f"Using device: {device}")
 
     # Create dataset transforms
+    # Resize for consistant input size
+    # Convert to tensor for consistent input format
+    # Normalize for consistent input range
     transform = transforms.Compose([
         transforms.Resize((config.dataset.image_size, config.dataset.image_size)),
         transforms.ToTensor(),
@@ -68,10 +71,9 @@ def main(config: DictConfig) -> None:
     logger.info("Creating continual learning scenario...")
     scenario = ClassIncrementalScenario(
         dataset=dataset,
-        num_tasks=2,  # Simplified for testing
-        num_classes_per_task=50,
+        num_tasks= 2,  # TODO: Make this dynamic based on a load_scenario function
         random_seed=config.seed,
-        shuffle_classes=True
+        shuffle_classes=config.shuffle_classes
     )
 
     # Create foundation model
@@ -121,11 +123,12 @@ def main(config: DictConfig) -> None:
         threshold=None
     )
 
-    # Create optimizer
-    optimizer = torch.optim.Adam(
-        model.parameters(),
-        lr=0.0001,
-        weight_decay=0.0001
+    # TODO: Make the learning rate and weight decay dynamic based on the model size
+    # Create optimizer with higher learning rate for classification head only
+    optimizer = torch.optim.AdamW(
+        model.classification_head.parameters(),  # Only optimize classification head
+        lr=0.001,
+        weight_decay=0.01
     )
 
     # Create scheduler
@@ -138,7 +141,7 @@ def main(config: DictConfig) -> None:
     logger.info("Creating logger...")
     wandb_logger = WandbLogger(
         project_name=config.logging.wandb.project_name,
-        experiment_name=config.experiment.name,  # Using the experiment name from config
+        experiment_name=config.experiment.name,
         config=OmegaConf.to_container(config, resolve=True),
         tags=config.logging.wandb.tags,
         api_key=config.logging.wandb.api_key,
@@ -154,7 +157,7 @@ def main(config: DictConfig) -> None:
         cl_method=cl_method,
         scenario=scenario,
         ood_detector=ood_detector,
-        epochs_per_task=2,  # Reduced for testing. TODO: change this to be dynamic?
+        epochs_per_task= 2,  # TODO: change this to be dynamic?
         optimizer=optimizer,
         scheduler=scheduler,
         device=device

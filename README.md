@@ -50,8 +50,9 @@ Key research areas addressed by this framework:
    ```bash
    pip install -r requirements.txt
    ```
+4. Create .env file, copying over .template_env contents
 
-4. (Optional) Set up Weights & Biases:
+5. (Optional) Set up Weights & Biases:
    ```bash
    wandb login
    ```

@@ -3,6 +3,7 @@ import random
 import torch
 import numpy as np
 
+# Currently not used but may be useful in future. Camerons code.
 def set_seed(seed=1) -> None:
     np.random.seed(seed)
     random.seed(seed)
