@@ -67,7 +67,7 @@ class Trainer:
                 self.optimizer.zero_grad(set_to_none=True)  # More efficient than zero_grad()
 
                 # Forward pass
-                with torch.cuda.amp.autocast():  # Mixed precision training
+                with torch.amp.autocast('cuda'):  # Mixed precision training
                     outputs = self.model(inputs)
                     loss = self.cl_method.compute_loss(outputs, targets, task_id)
 
