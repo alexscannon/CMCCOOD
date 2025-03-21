@@ -7,7 +7,7 @@ defaults:
   - continual_learning/method: replay/er           # Start with Experience Replay for CL
   - continual_learning/ood_detection: energy       # Energy-based OOD
   - training: default
-  - logging: wandb  # Updated to match the directory structure
+  - logging: wandb
   - _self_
 
 # General parameters

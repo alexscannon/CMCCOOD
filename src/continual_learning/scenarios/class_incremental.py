@@ -10,7 +10,7 @@ class ClassIncrementalScenario:
             dataset,
             num_tasks,
             num_classes_per_task=None, # Let helper function calc classes per task
-            random_seed=42, #default seed
+            random_seed=42, # default seed=42 if not specified in config
             shuffle_classes=True
         ):
         self.dataset = dataset
@@ -42,7 +42,6 @@ class ClassIncrementalScenario:
         class_order = np.arange(self.total_classes)
         if self.shuffle_classes:
             np.random.shuffle(class_order)
-        print(f"Class order: {class_order}")
         return class_order
 
     def _prepare_task_data(self):
@@ -64,6 +63,7 @@ class ClassIncrementalScenario:
             train_indices = []
             test_indices = []
 
+            # Find all data points (indices) in the dataset that belong to current task classes
             for class_id in task_classes:
                 train_indices.extend((train_targets == class_id).nonzero().squeeze(1).tolist())
                 test_indices.extend((test_targets == class_id).nonzero().squeeze(1).tolist())
@@ -81,7 +81,7 @@ class ClassIncrementalScenario:
         if task_id not in self.task_data:
             raise ValueError(f"Task ID {task_id} not found")
 
-        # Select appropriate dataset and indices
+        # Select appropriate dataset and task specific indices
         dataset = self.train_dataset if train else self.test_dataset
         indices = self.task_data[task_id]['train_indices'] if train else self.task_data[task_id]['test_indices']
 

@@ -20,12 +20,11 @@ class WandbLogger:
             log_model (bool, optional): Whether to log model artifacts
         """
         try:
-            if not wandb.is_logged_in():
-                if api_key:
-                    wandb.login(key=api_key)
-                    logger.info("Successfully logged in to W&B using API key")
-                else:
-                    logger.warning("Unsuccessful W&B login. No API key provided for W&B login")
+            if api_key:
+                wandb.login(key=api_key)
+                logger.info("Successfully logged in to W&B using API key")
+            else:
+                logger.warning("No API key provided for W&B login")
 
             self.run = wandb.init(
                 project=project_name,

@@ -1,10 +1,8 @@
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import torch
-from torch.utils.data import TensorDataset
 import os
 import logging
-from torchvision import datasets, transforms
 
 from src.models.foundation_models.vision_adapter import VisionModelAdapter
 from src.models.classification_head import ClassificationHead
@@ -13,18 +11,25 @@ from src.continual_learning.scenarios.class_incremental import ClassIncrementalS
 from src.continual_learning.methods.replay.er import ExperienceReplay
 from src.continual_learning.ood_detection.energy import EnergyBasedOODDetector
 from src.training.trainer import Trainer
-from src.training.device_utils import get_device
 from src.loggers.wandb_logger import WandbLogger
+from src.training.device_utils import get_device
+from src.datasets.dataset_loader import load_dataset
 
 # Configure logger
 logger = logging.getLogger(__name__)
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(config: DictConfig) -> None:
-    """Main entry point for the simple test run."""
+    """Main entry point for running the experiment."""
+
+    # Suppress CUDA warning if CPU is intended
+    if config.device == "cuda" and not torch.cuda.is_available():
+        import warnings
+        warnings.filterwarnings("ignore", message="User provided device_type of 'cuda'")
+
     # Print config
     logger.info(OmegaConf.to_yaml(config))
-    logger.info(f"Device: {config.device}")
+
     # Set random seed
     torch.manual_seed(config.seed)
     if torch.cuda.is_available():
@@ -34,43 +39,13 @@ def main(config: DictConfig) -> None:
     device = get_device(config.device)
     logger.info(f"Using device: {device}")
 
-    # Create dataset transforms
-    # Resize for consistant input size
-    # Convert to tensor for consistent input format
-    # Normalize for consistent input range
-    transform = transforms.Compose([
-        transforms.Resize((config.dataset.image_size, config.dataset.image_size)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=config.dataset.mean, std=config.dataset.std)
-    ])
-
-    # Load CIFAR-100 dataset
-    logger.info("Loading CIFAR-100 dataset...")
-    train_dataset = datasets.CIFAR100(
-        root=config.dataset.root,
-        train=True,
-        download=True,
-        transform=transform
-    )
-
-    test_dataset = datasets.CIFAR100(
-        root=config.dataset.root,
-        train=False,
-        download=True,
-        transform=transform
-    )
-
-    # Create continual dataset
-    dataset = ContinualDataset(
-        train_dataset,
-        test_dataset,
-        num_classes=config.dataset.num_classes
-    )
+    # Load dataset based on configuration
+    continual_learning_dataset = load_dataset(config)
 
     # Create continual learning scenario
     logger.info("Creating continual learning scenario...")
     scenario = ClassIncrementalScenario(
-        dataset=dataset,
+        dataset=continual_learning_dataset,
         num_tasks= 2,  # TODO: Make this dynamic based on a load_scenario function
         random_seed=config.seed,
         shuffle_classes=config.shuffle_classes
@@ -88,7 +63,7 @@ def main(config: DictConfig) -> None:
     # Create classification head
     classification_head = ClassificationHead(
         feature_dim=feature_extractor.feature_dim,
-        num_classes=dataset.num_classes
+        num_classes=continual_learning_dataset.num_classes
     )
 
     # Create full model
@@ -107,6 +82,7 @@ def main(config: DictConfig) -> None:
     model = model.to(device)
 
     # Create continual learning method
+    # TODO: Make this dynamic based on a load_method function for CL methods
     logger.info("Creating continual learning method...")
     cl_method = ExperienceReplay(
         model=model,
@@ -117,6 +93,7 @@ def main(config: DictConfig) -> None:
     )
 
     # Create OOD detector
+    # TODO: Make this dynamic based on a load_ood_detector function for OOD detectors
     logger.info("Creating OOD detector...")
     ood_detector = EnergyBasedOODDetector(
         temperature=1.0,

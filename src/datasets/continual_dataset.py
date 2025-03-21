@@ -29,3 +29,11 @@ class ContinualDataset:
             num_workers=num_workers,
             pin_memory=True
         )
+
+    '''
+    TODO:
+    - Adding methods for data transformations specific to continual learning
+    - Implementing task-specific data filtering
+    - Supporting dataset modifications that happen during training (like adding exemplars)
+    - Handling class ordering or task boundaries
+    '''

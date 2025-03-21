@@ -60,7 +60,6 @@ def run_experiment(config):
 
     except Exception as e:
         logger.error(f"Experiment failed with error: {str(e)}", exc_info=True)
-        raise
 
 if __name__ == "__main__":
     run_experiment()
