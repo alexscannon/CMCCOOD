@@ -3,5 +3,5 @@ wandb:
   entity: ${oc.env:TEAM_NAME}
   api_key: ${oc.env:WANDB_API_KEY}
   tags: ["continual", "foundation_model", "ood"]  # Default tags
-  save_code: true
-  log_model: true
+  save_code: false
+  log_model: false

@@ -1,5 +1,6 @@
 name: class_incremental
-num_tasks: 10
-num_classes_per_task: 10
+num_tasks: 10  # Number of tasks to split the dataset into
 shuffle_classes: true
 random_seed: ${seed}
+
+# Note: number of classes per task is auto calculated in the scenario_loader.py file

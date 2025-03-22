@@ -1,8 +1,11 @@
 import torch
 import torch.nn as nn
 from timm import create_model
+import logging
 
 from ..base_model import BaseModel
+
+logger = logging.getLogger(__name__)
 
 class VisionModelAdapter(BaseModel):
     """Adapter for vision foundation models with continual learning support."""
@@ -25,11 +28,13 @@ class VisionModelAdapter(BaseModel):
 
         # Get feature dimension from the model
         if feature_dim is None:
-            # Auto-detect feature dimension
+            # Auto-detect backbonefeature dimension
             with torch.no_grad():
                 dummy_input = torch.zeros(1, 3, 224, 224)
                 features = self.backbone(dummy_input)
                 self.feature_dim = features.shape[1] # NUm of features model produces for each input image
+                logger.info(f"Feature dimension: {self.feature_dim}")
+
         else:
             self.feature_dim = feature_dim
 

@@ -3,3 +3,4 @@ model_name: vit_base_patch16_224 # base vit, patch size=16, image dim=224
 pretrained: true
 feature_dim: 768
 freeze_backbone: false
+type: vision_transformer_classification

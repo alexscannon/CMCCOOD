@@ -3,7 +3,15 @@ import torch
 from torch.utils.data import DataLoader, Subset
 
 class ClassIncrementalScenario:
-    """Class-incremental learning scenario."""
+    """
+    Class-incremental learning scenario.
+
+    This class is used to create a continual learning scenario where the classes are incrementally added to the model.
+    The classes are split into num_tasks and the classes are shuffled.
+    The classes are then split into num_classes_per_task for each task.
+    The data is then split into train and test sets for each task.
+
+    """
 
     def __init__(
             self,
