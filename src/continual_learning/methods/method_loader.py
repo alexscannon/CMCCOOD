@@ -28,9 +28,7 @@ def load_cl_method(config: DictConfig, model: BaseModel, scenario):
         return ExperienceReplay(
             model=model,
             scenario=scenario,
-            memory_size=cl_method_config.memory_size,
-            selection_strategy=cl_method_config.selection_strategy,
-            batch_size_memory=cl_method_config.batch_size_memory
+            cl_method_config=cl_method_config
         )
     # Add more methods as needed
     # elif method_name == "ewc":

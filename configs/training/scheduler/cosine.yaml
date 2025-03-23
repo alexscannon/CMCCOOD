@@ -1,0 +1,4 @@
+name: cosine  # Options: cosine, step, none
+t_max: 5  # For cosine annealing
+step_size: 10  # For step scheduler
+gamma: 0.1  # For step scheduler

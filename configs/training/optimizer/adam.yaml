@@ -1,0 +1,4 @@
+name: adam
+lr: 0.0001
+weight_decay: 0.0001
+optimize_all_params: false  # If true, optimize all model parameters

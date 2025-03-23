@@ -1,4 +1,4 @@
-name: split_cifar
+name: cifar100
 root: ${oc.env:DATA_ROOT,./data}/cifar100
 num_classes: 100
 image_size: 224

@@ -8,11 +8,14 @@ from src.models.model_loader import load_model
 from src.datasets.continual_dataset import ContinualDataset
 from src.continual_learning.methods.method_loader import load_cl_method
 from src.continual_learning.ood_detection.energy import EnergyBasedOODDetector
+from src.continual_learning.ood_detection.ood_detector_loader import load_ood_detector
 from src.training.trainer import Trainer
 from src.loggers.wandb_logger import WandbLogger
 from src.training.device_utils import get_device
 from src.datasets.dataset_loader import load_dataset
 from src.continual_learning.scenarios.scenario_loader import load_scenario
+from src.training.optimizer_loader import load_optimizer
+from src.training.scheduler_loader import load_scheduler
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -60,25 +63,11 @@ def main(config: DictConfig) -> None:
     )
 
     # Create OOD detector
-    # TODO: Make this dynamic based on a load_ood_detector function for OOD detectors
-    ood_detector = EnergyBasedOODDetector(
-        temperature=1.0,
-        threshold=None
-    )
+    ood_detector = load_ood_detector(config)
 
-    # TODO: Make the learning rate and weight decay dynamic based on the model size
-    # Create optimizer with higher learning rate for classification head only
-    optimizer = torch.optim.AdamW(
-        model.classification_head.parameters(),  # Only optimize classification head
-        lr=0.001,
-        weight_decay=0.01
-    )
-
-    # Create scheduler
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer,
-        T_max=5  # Simplified for testing
-    )
+    # Create optimizer and scheduler
+    optimizer = load_optimizer(config, model)
+    scheduler = load_scheduler(config, optimizer)
 
     # Create logger
     logger.info("Creating logger...")
@@ -99,7 +88,7 @@ def main(config: DictConfig) -> None:
         cl_method=cl_method,
         scenario=scenario,
         ood_detector=ood_detector,
-        epochs_per_task= 2,  # TODO: change this to be dynamic?
+        config=config,
         optimizer=optimizer,
         scheduler=scheduler,
         device=device

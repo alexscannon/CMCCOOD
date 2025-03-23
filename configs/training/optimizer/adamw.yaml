@@ -1,0 +1,5 @@
+name: adamw  # Options: adamw, sgd, adam
+learning_rate: 0.001
+weight_decay: 0.01
+momentum: 0.9  # Used for SGD
+optimize_all_params: false  # If true, optimize all model parameters

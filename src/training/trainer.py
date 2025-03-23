@@ -11,29 +11,27 @@ class Trainer:
             model,
             cl_method,
             scenario,
+            config,
             ood_detector=None,
-            epochs_per_task=10,
             optimizer=None,
             scheduler=None,
-            device=None
+            device=None,
         ):
+
+        self.training_config = config.training
+        self.epochs_per_task = self.training_config.epochs_per_task
+
         self.model = model
         self.cl_method = cl_method
         self.scenario = scenario
         self.ood_detector = ood_detector
-        self.epochs_per_task = epochs_per_task
+        self.optimizer = optimizer
+        self.scheduler = scheduler
 
         # Set device
         self.device = device if device is not None else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = self.model.to(self.device)
 
-        # Set optimizer and scheduler
-        if optimizer is None:
-            self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
-        else:
-            self.optimizer = optimizer
-
-        self.scheduler = scheduler
 
     def train_task(self, task_id):
         """Train the model on a specific task."""
@@ -46,8 +44,8 @@ class Trainer:
         train_loader = self.scenario.get_task_dataloader(
             task_id,
             train=True,
-            batch_size=256,  # Increased batch size TODO: Make this dynamic
-            num_workers=4    # Adjust based on your CPU cores TODO: Make this dynamic
+            batch_size=self.training_config.batch_size,
+            num_workers=self.training_config.num_workers
         )
 
         # Training loop

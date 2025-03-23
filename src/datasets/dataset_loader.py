@@ -6,7 +6,7 @@ from .continual_dataset import ContinualDataset
 logger = logging.getLogger(__name__)
 
 DATASET_REGISTRY = {
-    'split_cifar': datasets.CIFAR100,  # Map your config names to actual dataset classes
+    'cifar100': datasets.CIFAR100,  # Map your config names to actual dataset classes
     'cifar10': datasets.CIFAR10,
     'mnist': datasets.MNIST,
     'fashion_mnist': datasets.FashionMNIST,

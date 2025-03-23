@@ -1,0 +1,7 @@
+# SGD Optimizer Configuration
+
+name: sgd
+learning_rate: 0.01
+momentum: 1.0 # Default momentum for SGD
+weight_decay: 0.0001
+optimize_all_params: false

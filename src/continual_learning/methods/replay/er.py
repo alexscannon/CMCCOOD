@@ -9,17 +9,16 @@ class ExperienceReplay(BaseCLMethod):
             self,
             model,
             scenario,
-            memory_size=2000,
-            selection_strategy='random',
-            batch_size_memory=32
+            cl_method_config,
         ):
         super().__init__(model, scenario)
-        self.memory_size = memory_size
-        self.selection_strategy = selection_strategy
-        self.batch_size_memory = batch_size_memory
+        self.cl_method_config = cl_method_config
+        self.memory_size = self.cl_method_config.memory_size
+        self.selection_strategy = self.cl_method_config.selection_strategy
+        self.batch_size_memory = self.cl_method_config.batch_size_memory
 
         # Create memory buffer
-        self.buffer = MemoryBuffer(memory_size=memory_size)
+        self.buffer = MemoryBuffer(memory_size=self.memory_size)
 
     def after_task(self, task_id):
         """Update memory after learning a task."""
