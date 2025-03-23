@@ -16,6 +16,7 @@ class Trainer:
             optimizer=None,
             scheduler=None,
             device=None,
+            wandb_logger=None,
         ):
 
         self.training_config = config.training
@@ -27,6 +28,7 @@ class Trainer:
         self.ood_detector = ood_detector
         self.optimizer = optimizer
         self.scheduler = scheduler
+        self.wandb_logger = wandb_logger  # Add WandB logger
 
         # Set device
         self.device = device if device is not None else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -87,6 +89,23 @@ class Trainer:
                         'acc': 100. * correct / total
                     })
 
+
+
+            # Log epoch metrics
+            if self.wandb_logger is not None:
+                epoch_metrics = {
+                    f'task_{task_id}/epoch/loss': running_loss / len(train_loader),
+                    f'task_{task_id}/epoch/accuracy': 100. * correct / total,
+                    'epoch': epoch + 1,
+                }
+                self.wandb_logger.log_metrics(epoch_metrics)
+
+                # Evaluate and log validation metrics after each epoch
+                val_metrics = self.evaluate(task_id)
+                for key, value in val_metrics.items():
+                    epoch_metrics[f'task_{task_id}/val/{key}'] = value
+                self.wandb_logger.log_metrics(epoch_metrics)
+
             # Step scheduler if provided
             if self.scheduler is not None:
                 self.scheduler.step()
@@ -126,14 +145,18 @@ class Trainer:
                     correct += predicted.eq(targets).sum().item()
 
             accuracy = 100. * correct / total if total > 0 else 0
-            results[f"Task {task_id} Accuracy"] = accuracy
+            results[f"accuracy"] = accuracy
             print(f"Task {task_id} Accuracy: {accuracy:.2f}%")
 
         # Calculate average accuracy
-        if task_id is None:
+        if task_id is None and len(task_ids) > 1:
             avg_accuracy = np.mean(list(results.values()))
-            results["Average Accuracy"] = avg_accuracy
+            results["average_accuracy"] = avg_accuracy
             print(f"Average Accuracy: {avg_accuracy:.2f}%")
+
+            # Log average accuracy across all tasks
+            if self.wandb_logger is not None:
+                self.wandb_logger.log_metrics({"average_accuracy": avg_accuracy})
 
         return results
 
@@ -144,4 +167,20 @@ class Trainer:
 
             # Evaluate after each task
             print(f"Evaluation after Task {task_id}:")
-            self.evaluate()
+            all_task_metrics = self.evaluate()
+
+            # Log comprehensive evaluation metrics after completing each task
+            if self.wandb_logger is not None:
+                metrics = {}
+
+                # Log individual task performances
+                for eval_task_id in range(task_id + 1):
+                    test_loader = self.scenario.get_task_dataloader(eval_task_id, train=False)
+                    task_results = self.evaluate(eval_task_id)
+                    metrics[f"task_{eval_task_id}/test_accuracy"] = task_results["accuracy"]
+
+                # Add average metrics
+                metrics["cumulative_average_accuracy"] = all_task_metrics.get("average_accuracy", 0)
+                metrics["current_task"] = task_id
+
+                self.wandb_logger.log_metrics(metrics)

@@ -4,14 +4,12 @@ import torch
 import os
 import logging
 
-from src.models.model_loader import load_model
-from src.datasets.continual_dataset import ContinualDataset
-from src.continual_learning.methods.method_loader import load_cl_method
-from src.continual_learning.ood_detection.energy import EnergyBasedOODDetector
-from src.continual_learning.ood_detection.ood_detector_loader import load_ood_detector
 from src.training.trainer import Trainer
 from src.loggers.wandb_logger import WandbLogger
 from src.training.device_utils import get_device
+from src.models.model_loader import load_model
+from src.continual_learning.methods.method_loader import load_cl_method
+from src.continual_learning.ood_detection.ood_detector_loader import load_ood_detector
 from src.datasets.dataset_loader import load_dataset
 from src.continual_learning.scenarios.scenario_loader import load_scenario
 from src.training.optimizer_loader import load_optimizer
@@ -91,7 +89,8 @@ def main(config: DictConfig) -> None:
         config=config,
         optimizer=optimizer,
         scheduler=scheduler,
-        device=device
+        device=device,
+        wandb_logger=wandb_logger
     )
 
     # Train on all tasks

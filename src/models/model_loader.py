@@ -23,6 +23,8 @@ def load_model(model_config, num_classes, device):
         model = _build_vision_classification_model(model_config, num_classes)
     elif model_type == 'custom':
         model = _load_custom_model(model_config, num_classes)
+    # elif model_type == 'new_custom_model':
+    #     raise NotImplementedError("New custom model not implemented yet")
     else:
         # Dynamically load model builder based on type
         try:
@@ -61,6 +63,12 @@ def _build_vision_classification_model(model_config, num_classes):
     model = CLVisionTransformerModel(feature_extractor, classification_head)
 
     return model
+
+# TODO: Implement this when we have a custom model to build
+def _build_custom_model(model_config, num_classes):
+    """Build a custom model from a specified module and class"""
+    raise NotImplementedError("Custom model not implemented yet")
+
 
 def _load_custom_model(model_config, num_classes):
     """Load a custom model from a specified module and class"""
