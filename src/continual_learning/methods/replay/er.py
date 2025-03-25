@@ -39,6 +39,7 @@ class ExperienceReplay(BaseCLMethod):
 
     def compute_loss(self, outputs, targets, task_id):
         """Compute loss with replay regularization."""
+
         # Standard classification loss for current task
         loss = F.cross_entropy(outputs, targets)
 

@@ -1,5 +1,4 @@
 import torch
-from .base_detector import BaseOODDetector
 
 class EnergyBasedOODDetector():
     """Energy-based out-of-distribution detection."""

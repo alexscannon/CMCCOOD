@@ -89,8 +89,6 @@ class Trainer:
                         'acc': 100. * correct / total
                     })
 
-
-
             # Log epoch metrics
             if self.wandb_logger is not None:
                 epoch_metrics = {
