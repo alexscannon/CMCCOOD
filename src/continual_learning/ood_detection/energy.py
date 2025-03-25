@@ -10,6 +10,8 @@ class EnergyBasedOODDetector():
             'mean': None,
             'std': None
         }
+        # Higher energy means more likely to be OOD, so no inversion needed
+        self.score_needs_inversion = False
 
     def compute_energy(self, logits):
         """Compute energy score from logits."""

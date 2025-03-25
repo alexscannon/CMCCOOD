@@ -1,5 +1,5 @@
 epochs_per_task: 5
-batch_size: 256
+batch_size: 64 # Current GPU RAM: 20.0GB w/ 256 batch size
 num_workers: 4
 
 
