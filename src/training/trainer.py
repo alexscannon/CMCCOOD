@@ -43,7 +43,7 @@ class Trainer:
 
         self.model.eval()
         # Evaluate on all seen tasks if no task_id is given.
-        task_ids = range(self.scenario.num_tasks) if task_id is None else task_ids = [task_id]
+        task_ids = range(self.scenario.num_tasks) if task_id is None else [task_id]
 
         results = {}
         for task_id in task_ids:
