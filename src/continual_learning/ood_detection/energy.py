@@ -1,3 +1,4 @@
+from typing import Tuple
 import torch
 
 class EnergyBasedOODDetector():
@@ -13,13 +14,13 @@ class EnergyBasedOODDetector():
         # Higher energy means more likely to be OOD, so no inversion needed
         self.score_needs_inversion = False
 
-    def compute_energy(self, logits):
+    def compute_energy(self, logits: torch.Tensor) -> torch.Tensor:
         """Compute energy score from logits."""
         # Energy = -T * log(sum(exp(logits/T)))
         energy = -self.temperature * torch.logsumexp(logits / self.temperature, dim=1)
         return energy
 
-    def calibrate(self, model, dataloader, device):
+    def calibrate(self, model: torch.nn.Module, dataloader: torch.utils.data.DataLoader, device: torch.device):
         """Calibrate the detector on in-distribution data."""
         model.eval()
         energies = []
@@ -42,7 +43,7 @@ class EnergyBasedOODDetector():
         if self.threshold is None:
             self.threshold = self.energy_stats['mean'] + 2 * self.energy_stats['std']
 
-    def predict(self, logits):
+    def predict(self, logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Predict if samples are OOD based on energy score."""
         energy = self.compute_energy(logits)
         is_ood = energy > self.threshold

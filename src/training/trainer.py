@@ -39,10 +39,17 @@ class Trainer:
 
 
     def evaluate(self, task_id=None):
-        """Evaluate the model on one or all tasks."""
+        """
+        Evaluate the model's accuracy on one or all tasks.
 
-        self.model.eval()
-        # Evaluate on all seen tasks if no task_id is given.
+        Args:
+            task_id: The task ID to evaluate on. If None, evaluate on all tasks.
+
+        Returns:
+            Dictionary of evaluation metrics.
+        """
+
+        self.model.eval() # Set the model to evaluation mode
         task_ids = range(self.scenario.num_tasks) if task_id is None else [task_id]
 
         results = {}
@@ -62,7 +69,7 @@ class Trainer:
             accuracy = 100. * correct / total if total > 0 else 0
             results[f"accuracy_{task_id}"] = accuracy
 
-            print(f"Task {task_id} Accuracy: {accuracy:.2f}%")
+            logger.info(f"Task {task_id} Accuracy: {accuracy:.2f}%")
 
         # Calculate average accuracy
         if task_id is None and len(task_ids) > 1:
@@ -76,11 +83,17 @@ class Trainer:
 
         return results
 
-    def train_task(self, task_id):
-        """Train the model on a specific task."""
-        print(f"Training on task {task_id}")
+    def train_task(self, task_id: int) -> None:
+        """
+        Train the model on a specific task.
 
-        # Prepare for new task
+        Args:
+            task_id: The task ID to train on.
+        """
+
+        logger.info(f"Training on task {task_id}")
+
+        # Prepare for new task if CL method is uses set up procedures
         self.cl_method.before_task(task_id)
 
         # Get data loader for current task
@@ -94,9 +107,7 @@ class Trainer:
         # Training loop
         self.model.train()
         for epoch in range(self.epochs_per_task):
-            running_loss = 0.0
-            correct = 0
-            total = 0
+            running_loss, correct, total = 0.0, 0, 0
 
             progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{self.epochs_per_task}")
             for inputs, targets in progress_bar:
@@ -105,12 +116,14 @@ class Trainer:
                 targets = targets.to(self.device, non_blocking=True)
 
                 # Zero gradients
-                self.optimizer.zero_grad(set_to_none=True)  # More efficient than zero_grad()
+                self.optimizer.zero_grad(set_to_none=True)
 
                 # Forward pass
                 with torch.amp.autocast('cuda'):  # Mixed precision training
                     outputs = self.model(inputs)
-                    loss = self.cl_method.compute_loss(outputs, targets, task_id)
+                    # Compute loss which may be a combination of a classification loss and a regularization loss
+                    # for specific CL methods. Not just a classification loss.
+                    loss = self.cl_method.compute_loss(outputs, targets)
 
                 # Backward pass and optimize
                 loss.backward()
@@ -139,28 +152,23 @@ class Trainer:
                 }
                 self.wandb_logger.log_metrics(epoch_metrics)
 
-                # Evaluate and log validation metrics after each epoch
-                val_metrics = self.evaluate(task_id)
-                for key, value in val_metrics.items():
-                    epoch_metrics[f'task_{task_id}/val/{key}'] = value
-                self.wandb_logger.log_metrics(epoch_metrics)
-
             # Step scheduler if provided
             if self.scheduler is not None:
                 self.scheduler.step()
 
-        # After task operations
+        # After task CL method specific operations
         self.cl_method.after_task(task_id)
 
         # Calibrate OOD detector if provided
-        if self.ood_detector is not None:
+        if self.ood_detector is not None and hasattr(self.ood_detector, 'calibrate'):
             print("Calibrating OOD detector...")
-            train_loader = self.scenario.get_task_dataloader(task_id, train=False)  # Use validation data
-            self.ood_detector.calibrate(self.model, train_loader, self.device)
+            test_loader = self.scenario.get_task_dataloader(task_id, train=False)  # Use validation data
+            self.ood_detector.calibrate(self.model, test_loader, self.device)
 
 
-    def evaluate_ood_detection_by_task(self, current_task_id, ood_task_id):
-        """Evaluate OOD detection performance between tasks.
+    def evaluate_ood_detection_by_task(self, current_task_id: int, ood_task_id: int) -> dict:
+        """
+        Evaluate OOD detection performance between tasks.
 
         Args:
             current_task_id: ID of the current task (in-distribution data)
@@ -169,83 +177,79 @@ class Trainer:
         Returns:
             Dictionary of OOD detection metrics
         """
-        print(f"Evaluating OOD detection: Task {current_task_id} (in-distribution) vs Task {ood_task_id} (OOD)")
+
+        logger.info(f"Evaluating OOD detection: Task {current_task_id} (in-distribution) vs Task {ood_task_id} (OOD)")
 
         if self.ood_detector is None:
             logger.warning("No OOD detector provided, skipping OOD evaluation")
             return {}
 
-        self.model.eval()
-
         # Get dataloaders
-        id_loader = self.scenario.get_task_dataloader(current_task_id, train=False)
-        ood_loader = self.scenario.get_task_dataloader(ood_task_id, train=False)
-
-        # Calibrate detector on current task if it supports calibration
-        print(f"Calibrating OOD detector on Task {current_task_id}...")
-        if hasattr(self.ood_detector, 'calibrate'):
-            self.ood_detector.calibrate(self.model, id_loader, self.device)
+        ind_dataloader = self.scenario.get_task_dataloader(current_task_id, train=False)
+        ood_dataloader = self.scenario.get_task_dataloader(ood_task_id, train=False)
 
         # Collect predictions
-        id_scores = []  # Generic scores instead of energies
-        id_preds = []
-        ood_scores = []
-        ood_preds = []
+        ind_preds, ind_scores = [], []
+        ood_preds, ood_scores = [], []
 
+        self.model.eval()
         with torch.no_grad():
             # Process in-distribution data
-            for ind_inputs, _ in id_loader:
-                ind_inputs = ind_inputs.to(self.device)
+            for ind_inputs, _ in tqdm(ind_dataloader, desc="Processing in-distribution data"):
+                ind_inputs = ind_inputs.to(self.device, non_blocking=True)
                 ind_logits = self.model(ind_inputs)
 
                 # Use the detector's prediction method
-                is_ood, score = self.ood_detector.predict(ind_logits)
+                ind_is_ood_preds, ind_energy_scores = self.ood_detector.predict(ind_logits)
 
-                id_preds.append(is_ood)
-                id_scores.append(score)
+                ind_preds.append(ind_is_ood_preds)
+                ind_scores.append(ind_energy_scores)
 
             # Process out-of-distribution data
-            for ood_inputs, _ in ood_loader:
-                ood_inputs = ood_inputs.to(self.device)
+            for ood_inputs, _ in tqdm(ood_dataloader, desc="Processing out-of-distribution data"):
+                ood_inputs = ood_inputs.to(self.device, non_blocking=True)
                 ood_logits = self.model(ood_inputs)
 
                 # Use the detector's prediction method
-                is_ood, score = self.ood_detector.predict(ood_logits)
+                ood_is_ood_preds, ood_energy_scores = self.ood_detector.predict(ood_logits)
 
-                ood_preds.append(is_ood)
-                ood_scores.append(score)
+                ood_preds.append(ood_is_ood_preds)
+                ood_scores.append(ood_energy_scores)
 
         # Concatenate results
-        id_preds = torch.cat(id_preds, dim=0) if id_preds else torch.tensor([])
-        id_scores = torch.cat(id_scores, dim=0) if id_scores else torch.tensor([])
+        ind_preds = torch.cat(ind_preds, dim=0) if ind_preds else torch.tensor([])
+        ind_scores = torch.cat(ind_scores, dim=0) if ind_scores else torch.tensor([])
         ood_preds = torch.cat(ood_preds, dim=0) if ood_preds else torch.tensor([])
         ood_scores = torch.cat(ood_scores, dim=0) if ood_scores else torch.tensor([])
 
-        # Calculate metrics
-        id_labels = torch.zeros_like(id_preds, dtype=torch.float)
+        # Calculate labels
+        ind_labels = torch.zeros_like(ind_preds, dtype=torch.float)
         ood_labels = torch.ones_like(ood_preds, dtype=torch.float)
 
-        # Calculate metrics
-        id_accuracy = (id_preds == id_labels).float().mean().item() if len(id_preds) > 0 else 0
+        # Calculate accuracy metrics
+        ind_accuracy = (ind_preds == ind_labels).float().mean().item() if len(ind_preds) > 0 else 0
         ood_accuracy = (ood_preds == ood_labels).float().mean().item() if len(ood_preds) > 0 else 0
 
-        # Calculate True Positive Rate and False Positive Rate
-        tpr = ood_preds.float().mean().item() if len(ood_preds) > 0 else 0  # True Positive Rate (detection rate)
-        fpr = id_preds.float().mean().item() if len(id_preds) > 0 else 0   # False Positive Rate
+        logger.info(f"ID Accuracy: {ind_accuracy * 100}%")
+        logger.info(f"OOD Accuracy: {ood_accuracy * 100}%")
+
+        # Calculate True Positive Rate (TPR) and False Positive Rate (FPR)
+        tpr = ood_preds.float().mean().item() if len(ood_preds) > 0 else 0
+        fpr = ind_preds.float().mean().item() if len(ind_preds) > 0 else 0
 
         metrics = {
-            "ood_detection/id_accuracy": id_accuracy * 100,
+            "ood_detection/ind_accuracy": ind_accuracy * 100,
             "ood_detection/ood_accuracy": ood_accuracy * 100,
             "ood_detection/detection_rate": tpr * 100,
             "ood_detection/false_alarm_rate": fpr * 100,
         }
 
         # Calculate AUROC if both score arrays are non-empty and sklearn is available
-        if len(id_scores) > 0 and len(ood_scores) > 0:
+        if len(ind_scores) > 0 and len(ood_scores) > 0:
             try:
                 from sklearn.metrics import roc_auc_score
-                all_scores = torch.cat([id_scores, ood_scores], dim=0).cpu().numpy()
-                all_labels = torch.cat([id_labels, ood_labels], dim=0).cpu().numpy()
+                all_scores = torch.cat([ind_scores, ood_scores], dim=0).cpu().numpy()
+                all_labels = torch.cat([ind_labels, ood_labels], dim=0).cpu().numpy()
 
                 # Higher score should indicate higher likelihood of being OOD
                 # Check if detector needs score inversion (depends on detector implementation)
@@ -267,10 +271,6 @@ class Trainer:
 
         for task_id in range(self.scenario.num_tasks):
             self.train_task(task_id)
-
-            # Evaluate after each task
-            # print(f"Evaluation after Task {task_id}:")
-            # all_task_metrics = self.evaluate()
 
             # Log comprehensive evaluation metrics after completing each task
             if self.wandb_logger is not None:

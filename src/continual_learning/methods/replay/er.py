@@ -1,3 +1,4 @@
+import torch
 import torch.nn.functional as F
 from ...base import BaseCLMethod
 from .buffer import MemoryBuffer
@@ -37,10 +38,19 @@ class ExperienceReplay(BaseCLMethod):
         # Add samples to memory
         self.buffer.add_samples(samples)
 
-    def compute_loss(self, outputs, targets, task_id):
-        """Compute loss with replay regularization."""
+    def compute_loss(self, outputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """
+        Compute loss with replay regularization.
 
-        # Standard classification loss for current task
+        Args:
+            outputs: The output of the model.
+            targets: The target of the model.
+
+        Returns:
+            The loss of the model.
+        """
+
+        # Standard cross entropy classification loss
         loss = F.cross_entropy(outputs, targets)
 
         # If there's memory data, add replay loss
