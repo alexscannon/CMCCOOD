@@ -67,19 +67,8 @@ class Trainer:
                     correct += predicted.eq(targets).sum().item() # Number of correct predictions
 
             accuracy = 100. * correct / total if total > 0 else 0
-            results[f"accuracy_{task_id}"] = accuracy
 
             logger.info(f"Task {task_id} Accuracy: {accuracy:.2f}%")
-
-        # Calculate average accuracy
-        if task_id is None and len(task_ids) > 1:
-            avg_accuracy = np.mean(list(results.values()))
-            results["average_accuracy"] = avg_accuracy
-            print(f"Average Accuracy: {avg_accuracy:.2f}%")
-
-            # Log average accuracy across all tasks
-            if self.wandb_logger is not None:
-                self.wandb_logger.log_metrics({"average_accuracy": avg_accuracy})
 
         return results
 
@@ -148,7 +137,6 @@ class Trainer:
                 epoch_metrics = {
                     f'task_{task_id}/epoch/loss': running_loss / len(train_loader),
                     f'task_{task_id}/epoch/accuracy': 100. * correct / total,
-                    'epoch': epoch + 1,
                 }
                 self.wandb_logger.log_metrics(epoch_metrics)
 
@@ -268,6 +256,7 @@ class Trainer:
 
     def train_all_tasks(self):
         """Train on all tasks sequentially."""
+        cumulative_accuracies = []
 
         for task_id in range(self.scenario.num_tasks):
             self.train_task(task_id)
@@ -277,12 +266,19 @@ class Trainer:
                 metrics = {}
 
                 # Log individual task performances
+                total_accuracy = 0
                 for eval_task_id in range(task_id + 1):
                     task_results = self.evaluate(eval_task_id)
-                    metrics[f"task_{eval_task_id}/test_accuracy"] = task_results[f"accuracy_{eval_task_id}"]
+                    task_accuracy = task_results[f"accuracy_{eval_task_id}"]
+                    metrics[f"task_{eval_task_id}/test_accuracy"] = task_accuracy
+                    total_accuracy += task_accuracy
 
-                # Add average metrics
-                # metrics["cumulative_average_accuracy"] = all_task_metrics.get("average_accuracy", 0)
+                # Calculate and log running average accuracy
+                current_avg_accuracy = total_accuracy / (task_id + 1)
+                cumulative_accuracies.append(current_avg_accuracy)
+                metrics["metrics/running_avg_accuracy"] = current_avg_accuracy
+
+                # Also log the average accuracy across all tasks completed so far
                 metrics["current_task"] = task_id
 
                 # Evaluate OOD detection on next task's data (if not the last task)

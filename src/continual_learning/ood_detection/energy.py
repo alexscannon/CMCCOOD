@@ -45,6 +45,6 @@ class EnergyBasedOODDetector():
 
     def predict(self, logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Predict if samples are OOD based on energy score."""
-        energy = self.compute_energy(logits)
-        is_ood = energy > self.threshold
-        return is_ood, energy
+        energy_scores = self.compute_energy(logits)
+        is_ood_preds = energy_scores > self.threshold
+        return is_ood_preds, energy_scores
