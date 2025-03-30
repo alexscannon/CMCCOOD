@@ -232,26 +232,6 @@ class Trainer:
             "ood_detection/false_alarm_rate": fpr * 100,
         }
 
-        # Calculate AUROC if both score arrays are non-empty and sklearn is available
-        if len(ind_scores) > 0 and len(ood_scores) > 0:
-            try:
-                from sklearn.metrics import roc_auc_score
-                all_scores = torch.cat([ind_scores, ood_scores], dim=0).cpu().numpy()
-                all_labels = torch.cat([ind_labels, ood_labels], dim=0).cpu().numpy()
-
-                # Higher score should indicate higher likelihood of being OOD
-                # Check if detector needs score inversion (depends on detector implementation)
-                score_needs_inversion = hasattr(self.ood_detector, 'score_needs_inversion') and self.ood_detector.score_needs_inversion
-
-                if score_needs_inversion:
-                    auroc = roc_auc_score(all_labels, -all_scores)
-                else:
-                    auroc = roc_auc_score(all_labels, all_scores)
-
-                metrics["ood_detection/auroc"] = auroc * 100
-            except (ImportError, ValueError) as e:
-                print(f"AUROC calculation error: {str(e)}")
-
         return metrics
 
     def train_all_tasks(self):
