@@ -134,12 +134,12 @@ class Trainer:
                     })
 
             # Log epoch metrics
-            if self.wandb_logger is not None:
-                epoch_metrics = {
-                    f'task_{task_id}/epoch/loss': running_loss / len(train_loader),
-                    f'task_{task_id}/epoch/accuracy': 100. * correct / total,
-                }
-                self.wandb_logger.log_metrics(epoch_metrics)
+            # if self.wandb_logger is not None:
+            #     epoch_metrics = {
+            #         f'task_{task_id}/epoch/loss': running_loss / len(train_loader),
+            #         f'task_{task_id}/epoch/accuracy': 100. * correct / total,
+            #     }
+            #     self.wandb_logger.log_metrics(epoch_metrics)
 
             # Step scheduler if provided
             if self.scheduler is not None:
@@ -251,7 +251,7 @@ class Trainer:
                 for eval_task_id in range(task_id + 1):
                     task_results = self.evaluate(eval_task_id)
                     task_accuracy = task_results[f"accuracy_{eval_task_id}"]
-                    # metrics[f"task_{eval_task_id}/test_accuracy"] = task_accuracy
+                    metrics[f"task_{eval_task_id}/test_accuracy"] = task_accuracy
                     total_accuracy += task_accuracy
 
                 # Calculate and log running average accuracy
