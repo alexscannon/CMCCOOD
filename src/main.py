@@ -97,13 +97,6 @@ def main(config: DictConfig) -> None:
     logger.info("Starting training...")
     trainer.train_all_tasks()
 
-    # Final evaluation
-    logger.info("Final evaluation:")
-    results = trainer.evaluate()
-
-    # Log results
-    wandb_logger.log_metrics(results)
-
     # Save model and log to W&B if configured
     if config.save_model or config.logging.wandb.log_model:
         output_dir = config.output_dir
@@ -119,8 +112,6 @@ def main(config: DictConfig) -> None:
 
     # Finish logging
     wandb_logger.finish()
-
-    return results
 
 if __name__ == "__main__":
     main()

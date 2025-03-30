@@ -134,12 +134,12 @@ class Trainer:
                     })
 
             # Log epoch metrics
-            # if self.wandb_logger is not None:
-            #     epoch_metrics = {
-            #         f'task_{task_id}/epoch/loss': running_loss / len(train_loader),
-            #         f'task_{task_id}/epoch/accuracy': 100. * correct / total,
-            #     }
-            #     self.wandb_logger.log_metrics(epoch_metrics)
+            if self.wandb_logger is not None:
+                epoch_metrics = {
+                    f'task_{task_id}/epoch/loss': running_loss / len(train_loader),
+                    f'task_{task_id}/epoch/accuracy': 100. * correct / total,
+                }
+                self.wandb_logger.log_metrics(epoch_metrics)
 
             # Step scheduler if provided
             if self.scheduler is not None:
@@ -256,7 +256,7 @@ class Trainer:
 
                 # Calculate and log running average accuracy
                 current_avg_accuracy = total_accuracy / (task_id + 1)
-                cumulative_accuracies.append(current_avg_accuracy)
+                # cumulative_accuracies.append(current_avg_accuracy)
                 metrics["metrics/running_avg_accuracy"] = current_avg_accuracy
 
                 # Evaluate OOD detection on next task's data (if not the last task)
