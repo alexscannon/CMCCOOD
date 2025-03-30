@@ -227,10 +227,10 @@ class Trainer:
         fpr = ind_preds.float().mean().item() if len(ind_preds) > 0 else 0
 
         metrics = {
-            "ood_detection/ind_accuracy": ind_accuracy * 100,
-            "ood_detection/ood_accuracy": ood_accuracy * 100,
-            "ood_detection/detection_rate": tpr * 100,
-            "ood_detection/false_alarm_rate": fpr * 100,
+            "ind_accuracy": ind_accuracy * 100,
+            "ood_accuracy": ood_accuracy * 100,
+            "tpr": tpr * 100,
+            "fpr": fpr * 100,
         }
 
         return metrics
@@ -251,7 +251,7 @@ class Trainer:
                 for eval_task_id in range(task_id + 1):
                     task_results = self.evaluate(eval_task_id)
                     task_accuracy = task_results[f"accuracy_{eval_task_id}"]
-                    metrics[f"task_{eval_task_id}/test_accuracy"] = task_accuracy
+                    # metrics[f"task_{eval_task_id}/test_accuracy"] = task_accuracy
                     total_accuracy += task_accuracy
 
                 # Calculate and log running average accuracy
@@ -259,16 +259,15 @@ class Trainer:
                 cumulative_accuracies.append(current_avg_accuracy)
                 metrics["metrics/running_avg_accuracy"] = current_avg_accuracy
 
-                # Also log the average accuracy across all tasks completed so far
-                metrics["current_task"] = task_id
-
                 # Evaluate OOD detection on next task's data (if not the last task)
                 if task_id < self.scenario.num_tasks - 1 and self.ood_detector is not None:
                     ood_task_id = task_id + 1
                     ood_metrics = self.evaluate_ood_detection_by_task(task_id, ood_task_id)
-                    # ood_metrics are ind_accuracy, ood_accuracy, TPR, FPR
-                    metrics.update({
-                        f"ood_detection": v for _, v in ood_metrics.items()
-                    })
+                    # ood_metrics are ind_accuracy, ood_accuracy, TPR, FPR (by key)
+                    metrics["metrics/ind_accuracy"] = ood_metrics["ind_accuracy"]
+                    metrics["metrics/ood_accuracy"] = ood_metrics["ood_accuracy"]
+                    metrics["metrics/tpr"] = ood_metrics["tpr"]
+                    metrics["metrics/fpr"] = ood_metrics["fpr"]
+
 
                 self.wandb_logger.log_metrics(metrics)
