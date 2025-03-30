@@ -67,6 +67,7 @@ class Trainer:
                     correct += predicted.eq(targets).sum().item() # Number of correct predictions
 
             accuracy = 100. * correct / total if total > 0 else 0
+            results[f"accuracy_{task_id}"] = accuracy
 
             logger.info(f"Task {task_id} Accuracy: {accuracy:.2f}%")
 
