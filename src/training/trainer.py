@@ -163,7 +163,7 @@ class Trainer:
             ood_task_id: ID of the task to use as OOD data
 
         Returns:
-            Dictionary of OOD detection metrics
+            Dictionary of OOD detection metrics (ind_accuracy, ood_accuracy, TPR, FPR)
         """
 
         logger.info(f"Evaluating OOD detection: Task {current_task_id} (in-distribution) vs Task {ood_task_id} (OOD)")
@@ -265,9 +265,9 @@ class Trainer:
                 if task_id < self.scenario.num_tasks - 1 and self.ood_detector is not None:
                     ood_task_id = task_id + 1
                     ood_metrics = self.evaluate_ood_detection_by_task(task_id, ood_task_id)
+                    # ood_metrics are ind_accuracy, ood_accuracy, TPR, FPR
                     metrics.update({
-                        f"task_{task_id}_vs_{ood_task_id}/{k}": v
-                        for k, v in ood_metrics.items()
+                        f"ood_detection": v for _, v in ood_metrics.items()
                     })
 
                 self.wandb_logger.log_metrics(metrics)
